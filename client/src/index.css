@@ -1,0 +1,65 @@
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+.dashboard-container {
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+}
+
+.sidebar {
+  width: 250px;
+  height: 100vh; /* Ensures the sidebar fills the entire height */
+  position: fixed;
+  left: 0;
+  top: 0;
+}
+
+.main-content {
+  margin-left: 250px;
+  width: calc(100% - 250px);
+  overflow-y: auto;
+  height: 100vh;
+}
+
+.feature-card {
+  width: 30%;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  transition: transform 0.2s;
+}
+
+.feature-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0px 8px 12px rgba(0, 0, 0, 0.2);
+}
+
+.feature-card a {
+  text-decoration: none;
+  color: inherit;
+}
+
+.nav-link {
+  padding: 10px 15px;
+  border-radius: 5px;
+  transition: background-color 0.2s;
+}
+
+.nav-link:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.btn-danger {
+  font-weight: bold;
+}
