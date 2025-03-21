@@ -59,12 +59,13 @@ html, body, #root, .App {
   margin-left: 250px;
   width: calc(100% - 250px);
   min-height: 100vh;
-  background-color: #f8f9fa;
   overflow-y: auto;
+  position: relative;
 }
 
 .content-wrapper {
-  padding: 20px;
+  padding: 1.5rem;
+  height: 100%;
 }
 
 /* Records container */

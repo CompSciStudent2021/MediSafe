@@ -44,6 +44,23 @@ CREATE TABLE appointments (
     status TEXT CHECK (status IN ('scheduled', 'completed', 'cancelled')) DEFAULT 'scheduled'
 );
 
+-- PRESCRIPTIONS TABLE (Stores prescriptions with blockchain references)
+CREATE TABLE prescriptions (
+    prescription_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    patient_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    doctor_id UUID NOT NULL REFERENCES users(user_id) ON DELETE SET NULL,
+    medication VARCHAR(255) NOT NULL,
+    dosage VARCHAR(100) NOT NULL,
+    frequency VARCHAR(100) NOT NULL,
+    duration VARCHAR(100) NOT NULL,
+    notes TEXT,
+    is_active BOOLEAN DEFAULT TRUE,
+    blockchain_id VARCHAR(255) NOT NULL,
+    blockchain_hash VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- INDEXES FOR OPTIMIZATION
 CREATE INDEX idx_patient_user ON patients(user_id);
 CREATE INDEX idx_patient_doctor ON patients(doctor_id);

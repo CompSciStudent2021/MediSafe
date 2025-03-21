@@ -6,9 +6,29 @@ import { ToastContainer } from "react-toastify";
 import Login from "./components/Login";
 import Register from "./components/Register";
 import Dashboard from "./components/Dashboard";
-import Profile from "./components/Profile"; // Ensure Profile.js is here
+import Profile from "./components/Profile";
 import PatientRecords from "./components/PatientRecords";
-import Appointments from "./components/Appointments"; // ✅ Import Appointments
+import Appointments from "./components/Appointments";
+import Prescriptions from "./components/Prescriptions"; // Import the new component
+
+// Import style reset without any other CSS
+import { createGlobalStyle } from 'styled-components';
+
+const GlobalStyle = createGlobalStyle`
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+      sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+`;
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -37,8 +57,9 @@ function App() {
 
   return (
     <Fragment>
+      <GlobalStyle />
       {/* Toast notifications */}
-      <ToastContainer />
+      <ToastContainer position="bottom-right" />
 
       <Router>
         <div className="container">
@@ -82,7 +103,6 @@ function App() {
               }
             />
 
-            {/* Corrected Profile Route */}
             <Route
               path="/profile"
               element={
@@ -94,7 +114,14 @@ function App() {
               }
             />
 
+            {/* Add the new prescriptions route */}
+            <Route
+              path="/prescriptions"
+              element={isAuthenticated ? <Prescriptions setAuth={setAuth} /> : <Navigate to="/login" replace />}
+            />
+            
             {/* Default route */}
+            <Route path="/" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />} />
             <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>
         </div>

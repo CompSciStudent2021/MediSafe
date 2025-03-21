@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "react-toastify";
-import { FaUserMd, FaPlus, FaSave, FaNotesMedical, FaSignOutAlt, FaCalendarAlt, FaFileDownload, FaFileUpload, FaBars } from "react-icons/fa";
-import { Link, useNavigate } from "react-router-dom";
+import { FaPlus, FaSave, FaFileDownload } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
+import DashboardLayout from "./layout/DashboardLayout";
 import '../App.css';
-import '../index.css';
 
 const PatientRecords = ({ setAuth }) => {
   const [userRole, setUserRole] = useState("");
@@ -14,10 +14,8 @@ const PatientRecords = ({ setAuth }) => {
     condition: "",
     treatment: "",
     doctor_notes: "",
-    document: null, // Stores the uploaded PDF
+    document: null,
   });
-  const [isSidebarOpen, setSidebarOpen] = useState(false);
-  const [touchStart, setTouchStart] = useState(null);
 
   const navigate = useNavigate();
 
@@ -160,131 +158,64 @@ const PatientRecords = ({ setAuth }) => {
     }
   };
 
-  const handleTouchStart = (e) => {
-    const touch = e.touches[0];
-    setTouchStart(touch.clientX);
-  };
-
-  const handleTouchMove = (e) => {
-    if (!touchStart) return;
-    
-    const touch = e.touches[0];
-    const currentX = touch.clientX;
-    const diff = touchStart - currentX;
-
-    if (diff > 50) {
-      setSidebarOpen(false);
-    } else if (diff < -50) {
-      setSidebarOpen(true);
-    }
-  };
-
-  // Update the return statement structure
   return (
-    <div className="dashboard-container">
-      <button 
-        className="mobile-menu-toggle d-md-none"
-        onClick={() => setSidebarOpen(!isSidebarOpen)}
-      >
-        <FaBars />
-      </button>
-      {/* Sidebar */}
-      <div 
-        className={`sidebar ${isSidebarOpen ? 'show' : ''} bg-primary text-white d-flex flex-column align-items-center p-3`}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-      >
-        <Link to="/dashboard" className="text-white text-decoration-none">
-          <h3 className="my-3">MediSafe</h3>
-        </Link>
-        <h3 className="my-3">Patient Records</h3>
-        <nav className="nav flex-column w-100">
-          <Link to="/dashboard" className="nav-link text-white d-flex align-items-center">
-            <FaCalendarAlt className="me-2" size={20} /> Dashboard
-          </Link>
-          <Link to="/appointments" className="nav-link text-white d-flex align-items-center">
-            <FaCalendarAlt className="me-2" size={20} /> Appointments
-          </Link>
-          <Link to="/patientrecords" className="nav-link text-white d-flex align-items-center active">
-            <FaNotesMedical className="me-2" size={20} /> Patient Records
-          </Link>
-          <Link to="/profile" className="nav-link text-white d-flex align-items-center">
-            <FaUserMd className="me-2" size={20} /> Profile
-          </Link>
-        </nav>
-        <button className="btn btn-danger mt-auto w-100" onClick={logout}>
-          <FaSignOutAlt className="me-2" /> Logout
-        </button>
-      </div>
+    <DashboardLayout active="patientrecords" onLogout={logout}>
+      <h2 className="mb-4 text-center">Patient Records</h2>
+      
+      {/* Doctor's form section */}
+      {userRole === "doctor" && (
+        <div className="mb-4">
+          <button className="btn btn-success mb-3" onClick={toggleForm}>
+            <FaPlus className="me-2" /> {showForm ? "Close Form" : "Add New Record"}
+          </button>
 
-      {isSidebarOpen && (
-        <div 
-          className="sidebar-overlay" 
-          onClick={() => setSidebarOpen(false)}
-        />
+          {showForm && (
+            <form className="bg-light p-4 rounded shadow-sm" onSubmit={submitRecord}>
+              <div className="mb-3">
+                <label className="form-label">Patient Email</label>
+                <input type="email" name="patient_email" className="form-control" value={formData.patient_email} onChange={handleInputChange} required />
+              </div>
+              <div className="mb-3">
+                <label className="form-label">Condition</label>
+                <input type="text" name="condition" className="form-control" value={formData.condition} onChange={handleInputChange} required />
+              </div>
+              <div className="mb-3">
+                <label className="form-label">Treatment</label>
+                <input type="text" name="treatment" className="form-control" value={formData.treatment} onChange={handleInputChange} required />
+              </div>
+              <div className="mb-3">
+                <label className="form-label">Doctor Notes</label>
+                <textarea name="doctor_notes" className="form-control" value={formData.doctor_notes} onChange={handleInputChange} required />
+              </div>
+              <div className="mb-3">
+                <label className="form-label">Upload PDF</label>
+                <input type="file" name="document" className="form-control" accept="application/pdf" onChange={handleInputChange} />
+              </div>
+              <button type="submit" className="btn btn-primary">
+                <FaSave className="me-2" /> Submit Record
+              </button>
+            </form>
+          )}
+        </div>
       )}
 
-      {/* Main Content */}
-      <div className="main-content">
-        <div className="content-wrapper">
-          <h2 className="mb-4 text-center">Patient Records</h2>
-          
-          {/* Doctor's form section */}
-          {userRole === "doctor" && (
-            <div className="mb-4">
-              <button className="btn btn-success mb-3" onClick={toggleForm}>
-                <FaPlus className="me-2" /> {showForm ? "Close Form" : "Add New Record"}
+      {/* Records container */}
+      <div className="records-container">
+        {patientRecords.map((record) => (
+          <div key={record.record_id} className="card p-3">
+            <h5>{record.patient_name || "Your Record"}</h5>
+            <p><strong>Condition:</strong> {record.condition}</p>
+            <p><strong>Treatment:</strong> {record.treatment}</p>
+            <p><strong>Doctor Notes:</strong> {record.doctor_notes}</p>
+            {record.document && (
+              <button className="btn btn-info" onClick={() => handleDownload(record.record_id)}>
+                <FaFileDownload className="me-2" /> Download Report
               </button>
-
-              {showForm && (
-                <form className="bg-light p-4 rounded shadow-sm" onSubmit={submitRecord}>
-                  <div className="mb-3">
-                    <label className="form-label">Patient Email</label>
-                    <input type="email" name="patient_email" className="form-control" value={formData.patient_email} onChange={handleInputChange} required />
-                  </div>
-                  <div className="mb-3">
-                    <label className="form-label">Condition</label>
-                    <input type="text" name="condition" className="form-control" value={formData.condition} onChange={handleInputChange} required />
-                  </div>
-                  <div className="mb-3">
-                    <label className="form-label">Treatment</label>
-                    <input type="text" name="treatment" className="form-control" value={formData.treatment} onChange={handleInputChange} required />
-                  </div>
-                  <div className="mb-3">
-                    <label className="form-label">Doctor Notes</label>
-                    <textarea name="doctor_notes" className="form-control" value={formData.doctor_notes} onChange={handleInputChange} required />
-                  </div>
-                  <div className="mb-3">
-                    <label className="form-label">Upload PDF</label>
-                    <input type="file" name="document" className="form-control" accept="application/pdf" onChange={handleInputChange} />
-                  </div>
-                  <button type="submit" className="btn btn-primary">
-                    <FaSave className="me-2" /> Submit Record
-                  </button>
-                </form>
-              )}
-            </div>
-          )}
-
-          {/* Records container */}
-          <div className="records-container">
-            {patientRecords.map((record) => (
-              <div key={record.record_id} className="card p-3">
-                <h5>{record.patient_name || "Your Record"}</h5>
-                <p><strong>Condition:</strong> {record.condition}</p>
-                <p><strong>Treatment:</strong> {record.treatment}</p>
-                <p><strong>Doctor Notes:</strong> {record.doctor_notes}</p>
-                {record.document && (
-                  <button className="btn btn-info" onClick={() => handleDownload(record.record_id)}>
-                    <FaFileDownload className="me-2" /> Download Report
-                  </button>
-                )}
-              </div>
-            ))}
+            )}
           </div>
-        </div>
+        ))}
       </div>
-    </div>
+    </DashboardLayout>
   );
 };
 

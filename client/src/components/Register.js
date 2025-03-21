@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { FaEnvelope, FaLock, FaUserMd, FaUser, FaIdCard } from "react-icons/fa";
 import { motion } from "framer-motion";
@@ -14,13 +14,53 @@ const Register = ({ setAuth }) => {
         doctor_id: ""
     });
 
+    const navigate = useNavigate();
     const { email, password, name, role, doctor_id } = inputs;
 
     const onChange = (e) =>
         setInputs({ ...inputs, [e.target.name]: e.target.value });
 
     const onSubmitForm = async (e) => {
-        // ...existing onSubmitForm code...
+        e.preventDefault();
+
+        // Validate form
+        if (role === "patient" && !doctor_id) {
+            toast.error("Doctor ID is required for patients");
+            return;
+        }
+
+        try {
+            // Create request body based on role
+            const body = { email, password, name, role };
+            
+            // Add doctor_id only if role is patient
+            if (role === "patient") {
+                body.doctor_id = doctor_id;
+            }
+
+            // Send registration request
+            const response = await fetch("http://localhost:5000/auth/register", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(body)
+            });
+
+            const parseRes = await response.json();
+
+            if (response.ok) {
+                // Store token and update auth state
+                localStorage.setItem("token", parseRes.token);
+                setAuth(true);
+                toast.success("Registration successful!");
+                navigate("/dashboard");
+            } else {
+                // Handle registration failure
+                throw new Error(parseRes || "Registration failed");
+            }
+        } catch (err) {
+            console.error(err.message);
+            toast.error(err.message || "Registration failed. Please try again.");
+        }
     };
 
     return (
