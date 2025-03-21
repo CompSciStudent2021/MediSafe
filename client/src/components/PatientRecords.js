@@ -5,6 +5,16 @@ import { useNavigate } from "react-router-dom";
 import DashboardLayout from "./layout/DashboardLayout";
 import '../App.css';
 
+import { 
+  SuccessButton, 
+  PrimaryButton, 
+  Form, 
+  FormGroup, 
+  FormLabel, 
+  FormInput, 
+  FormTextArea 
+} from '../styles/DashboardStyles';
+
 const PatientRecords = ({ setAuth }) => {
   const [userRole, setUserRole] = useState("");
   const [patientRecords, setPatientRecords] = useState([]);
@@ -61,6 +71,18 @@ const PatientRecords = ({ setAuth }) => {
   useEffect(() => {
     getUserInfo();
     fetchRecords();
+  }, []);
+
+  useEffect(() => {
+    console.log("PatientRecords component mounted");
+    
+    // Debug authentication
+    const token = localStorage.getItem("token");
+    console.log("Token exists:", !!token);
+    
+    return () => {
+      console.log("PatientRecords component unmounted");
+    };
   }, []);
 
   // Handle input change
@@ -159,61 +181,147 @@ const PatientRecords = ({ setAuth }) => {
   };
 
   return (
-    <DashboardLayout active="patientrecords" onLogout={logout}>
+    <DashboardLayout active="records" onLogout={logout}>
       <h2 className="mb-4 text-center">Patient Records</h2>
       
-      {/* Doctor's form section */}
+      {/* Doctor's "Add Record" section */}
       {userRole === "doctor" && (
-        <div className="mb-4">
-          <button className="btn btn-success mb-3" onClick={toggleForm}>
-            <FaPlus className="me-2" /> {showForm ? "Close Form" : "Add New Record"}
-          </button>
-
+        <div>
+          <SuccessButton onClick={toggleForm} style={{ marginBottom: '1rem' }}>
+            <FaPlus /> {showForm ? 'Close Form' : 'Add New Record'}
+          </SuccessButton>
+          
           {showForm && (
-            <form className="bg-light p-4 rounded shadow-sm" onSubmit={submitRecord}>
-              <div className="mb-3">
-                <label className="form-label">Patient Email</label>
-                <input type="email" name="patient_email" className="form-control" value={formData.patient_email} onChange={handleInputChange} required />
-              </div>
-              <div className="mb-3">
-                <label className="form-label">Condition</label>
-                <input type="text" name="condition" className="form-control" value={formData.condition} onChange={handleInputChange} required />
-              </div>
-              <div className="mb-3">
-                <label className="form-label">Treatment</label>
-                <input type="text" name="treatment" className="form-control" value={formData.treatment} onChange={handleInputChange} required />
-              </div>
-              <div className="mb-3">
-                <label className="form-label">Doctor Notes</label>
-                <textarea name="doctor_notes" className="form-control" value={formData.doctor_notes} onChange={handleInputChange} required />
-              </div>
-              <div className="mb-3">
-                <label className="form-label">Upload PDF</label>
-                <input type="file" name="document" className="form-control" accept="application/pdf" onChange={handleInputChange} />
-              </div>
-              <button type="submit" className="btn btn-primary">
-                <FaSave className="me-2" /> Submit Record
-              </button>
-            </form>
+            <Form onSubmit={submitRecord}>
+              <FormGroup>
+                <FormLabel>Patient Email</FormLabel>
+                <FormInput 
+                  type="email"
+                  name="patient_email"
+                  value={formData.patient_email}
+                  onChange={handleInputChange}
+                  required
+                />
+              </FormGroup>
+              
+              <FormGroup>
+                <FormLabel>Condition</FormLabel>
+                <FormInput 
+                  type="text"
+                  name="condition"
+                  value={formData.condition}
+                  onChange={handleInputChange}
+                  required
+                />
+              </FormGroup>
+              
+              <FormGroup>
+                <FormLabel>Treatment</FormLabel>
+                <FormInput 
+                  type="text"
+                  name="treatment"
+                  value={formData.treatment}
+                  onChange={handleInputChange}
+                  required
+                />
+              </FormGroup>
+              
+              <FormGroup>
+                <FormLabel>Notes</FormLabel>
+                <FormTextArea 
+                  name="doctor_notes"
+                  value={formData.doctor_notes}
+                  onChange={handleInputChange}
+                  rows="3"
+                />
+              </FormGroup>
+              
+              <FormGroup>
+                <FormLabel>Document (PDF only)</FormLabel>
+                <FormInput 
+                  type="file"
+                  name="document"
+                  onChange={handleInputChange}
+                  accept="application/pdf"
+                />
+              </FormGroup>
+              
+              <PrimaryButton type="submit">
+                <FaSave /> Save Record
+              </PrimaryButton>
+            </Form>
           )}
         </div>
       )}
-
-      {/* Records container */}
-      <div className="records-container">
-        {patientRecords.map((record) => (
-          <div key={record.record_id} className="card p-3">
-            <h5>{record.patient_name || "Your Record"}</h5>
-            <p><strong>Condition:</strong> {record.condition}</p>
-            <p><strong>Treatment:</strong> {record.treatment}</p>
-            <p><strong>Doctor Notes:</strong> {record.doctor_notes}</p>
-            {record.document && (
-              <button className="btn btn-info" onClick={() => handleDownload(record.record_id)}>
-                <FaFileDownload className="me-2" /> Download Report
-              </button>
-            )}
+      
+      {/* Display Records */}
+      <div style={{ marginTop: '2rem' }}>
+        {patientRecords.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '2rem' }}>
+            <p>No patient records found.</p>
           </div>
-        ))}
+        ) : (
+          patientRecords.map((record) => (
+            <div 
+              key={record.record_id} 
+              style={{ 
+                border: '1px solid #e0e0e0',
+                borderRadius: '8px',
+                padding: '1rem',
+                marginBottom: '1rem',
+                backgroundColor: 'white'
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <h4 style={{ margin: 0 }}>{record.condition}</h4>
+                {record.has_document && (
+                  <button 
+                    onClick={() => handleDownload(record.record_id)}
+                    style={{
+                      background: '#4a90e2',
+                      color: 'white',
+                      border: 'none',
+                      padding: '0.5rem 1rem',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '5px'
+                    }}
+                  >
+                    <FaFileDownload /> Download Report
+                  </button>
+                )}
+              </div>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div>
+                  <p style={{ fontWeight: 'bold', margin: '0.5rem 0 0.25rem' }}>Patient:</p>
+                  <p style={{ margin: 0 }}>{record.patient_name}</p>
+                </div>
+                <div>
+                  <p style={{ fontWeight: 'bold', margin: '0.5rem 0 0.25rem' }}>Doctor:</p>
+                  <p style={{ margin: 0 }}>{record.doctor_name}</p>
+                </div>
+                <div>
+                  <p style={{ fontWeight: 'bold', margin: '0.5rem 0 0.25rem' }}>Treatment:</p>
+                  <p style={{ margin: 0 }}>{record.treatment}</p>
+                </div>
+                <div>
+                  <p style={{ fontWeight: 'bold', margin: '0.5rem 0 0.25rem' }}>Date:</p>
+                  <p style={{ margin: 0 }}>{new Date(record.created_at).toLocaleDateString()}</p>
+                </div>
+              </div>
+              
+              {record.doctor_notes && (
+                <div>
+                  <p style={{ fontWeight: 'bold', margin: '0.5rem 0 0.25rem' }}>Notes:</p>
+                  <p style={{ margin: 0 }}>{record.doctor_notes}</p>
+                </div>
+              )}
+            </div>
+          ))
+        )}
       </div>
     </DashboardLayout>
   );

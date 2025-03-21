@@ -127,7 +127,7 @@ const Dashboard = ({ setAuth }) => {
         />
         
         <FeatureCard 
-          to="/patientrecords"
+          to="/records"  // Ensure this matches the path in App.js
           icon={<FaNotesMedical className="feature-icon" />}
           title="Patient Records"
           description="View and manage medical records"

@@ -4,7 +4,7 @@ import { StatCardStyled, StatIcon, StatDetails } from '../../styles/DashboardSty
 const StatCard = ({ icon, title, value, label, iconClass }) => {
   return (
     <StatCardStyled>
-      <StatIcon iconType={iconClass}>
+      <StatIcon $iconType={iconClass}>
         {icon}
       </StatIcon>
       <StatDetails>

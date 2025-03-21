@@ -87,24 +87,20 @@ export const SidebarNav = styled.nav`
 `;
 
 export const NavLink = styled(Link)`
-  color: white;
-  text-decoration: none;
-  padding: 0.75rem 1rem;
   display: flex;
   align-items: center;
-  margin-bottom: 0.5rem;
-  border-radius: 4px;
-  transition: background-color 0.2s;
-  background-color: ${props => props.isActive ? 'rgba(255,255,255,0.2)' : 'transparent'};
-  
+  gap: 10px;
+  padding: 12px 20px;
+  color: ${props => props.$isActive ? '#ffffff' : 'rgba(255,255,255,0.7)'};
+  background-color: ${props => props.$isActive ? 'rgba(255,255,255,0.1)' : 'transparent'};
+  text-decoration: none;
+  border-radius: 6px;
+  margin-bottom: 5px;
+  transition: all 0.2s ease;
+
   &:hover {
     background-color: rgba(255,255,255,0.1);
     color: white;
-  }
-  
-  svg {
-    margin-right: 0.75rem;
-    font-size: 1.2rem;
   }
 `;
 
@@ -207,15 +203,17 @@ export const StatIcon = styled.div`
   justify-content: center;
   font-size: 24px;
   background-color: ${props => {
-    if (props.iconType === 'appointments') return 'rgba(13, 110, 253, 0.1)';
-    if (props.iconType === 'records') return 'rgba(25, 135, 84, 0.1)';
-    if (props.iconType === 'profile') return 'rgba(255, 193, 7, 0.1)';
+    if (props.$iconType === 'appointments') return 'rgba(13, 110, 253, 0.1)';
+    if (props.$iconType === 'records') return 'rgba(25, 135, 84, 0.1)';
+    if (props.$iconType === 'profile') return 'rgba(255, 193, 7, 0.1)';
+    if (props.$iconType === 'prescriptions') return 'rgba(138, 43, 226, 0.1)';
     return 'rgba(13, 110, 253, 0.1)';
   }};
   color: ${props => {
-    if (props.iconType === 'appointments') return colors.primary;
-    if (props.iconType === 'records') return colors.success;
-    if (props.iconType === 'profile') return colors.warning;
+    if (props.$iconType === 'appointments') return colors.primary;
+    if (props.$iconType === 'records') return colors.success;
+    if (props.$iconType === 'profile') return colors.warning;
+    if (props.$iconType === 'prescriptions') return colors.purple;
     return colors.primary;
   }};
 `;

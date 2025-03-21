@@ -49,8 +49,8 @@ const Sidebar = ({
             <FaCalendarAlt size={20} /> Appointments
           </NavLink>
           <NavLink 
-            to="/patientrecords" 
-            isActive={active === 'patientrecords'}
+            to="/records" 
+            $isActive={active === 'records'} // Note the $ prefix
           >
             <FaNotesMedical size={20} /> Patient Records
           </NavLink>

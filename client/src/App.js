@@ -9,7 +9,7 @@ import Dashboard from "./components/Dashboard";
 import Profile from "./components/Profile";
 import PatientRecords from "./components/PatientRecords";
 import Appointments from "./components/Appointments";
-import Prescriptions from "./components/Prescriptions"; // Import the new component
+import Prescriptions from "./components/Prescriptions"; 
 
 // Import style reset without any other CSS
 import { createGlobalStyle } from 'styled-components';
@@ -33,41 +33,37 @@ const GlobalStyle = createGlobalStyle`
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  const checkAuthenticated = async () => {
-    try {
-      const res = await fetch("http://localhost:5000/auth/verify", {
-        method: "POST",
-        headers: { token: localStorage.token },
-      });
-
-      const parseRes = await res.json();
-      setIsAuthenticated(parseRes === true);
-    } catch (err) {
-      console.error(err.message);
-    }
-  };
-
-  useEffect(() => {
-    checkAuthenticated();
-  }, []);
-
   const setAuth = (boolean) => {
     setIsAuthenticated(boolean);
   };
 
+  async function isAuth() {
+    try {
+      const response = await fetch("http://localhost:5000/auth/verify", {
+        method: "GET",
+        headers: { token: localStorage.token }
+      });
+
+      const parseRes = await response.json();
+      
+      parseRes === true ? setIsAuthenticated(true) : setIsAuthenticated(false);
+    } catch (err) {
+      console.error(err.message);
+    }
+  }
+
+  useEffect(() => {
+    isAuth();
+  }, []);
+
   return (
     <Fragment>
       <GlobalStyle />
-      {/* Toast notifications */}
       <ToastContainer position="bottom-right" />
 
       <Router>
         <div className="container">
           <Routes>
-            <Route
-              path="/records"
-              element={isAuthenticated ? <PatientRecords setAuth={setAuth} /> : <Navigate to="/login" replace />}
-            />
             <Route
               path="/appointments"
               element={isAuthenticated ? <Appointments setAuth={setAuth} /> : <Navigate to="/login" replace />}
@@ -114,13 +110,16 @@ function App() {
               }
             />
 
-            {/* Add the new prescriptions route */}
             <Route
               path="/prescriptions"
               element={isAuthenticated ? <Prescriptions setAuth={setAuth} /> : <Navigate to="/login" replace />}
             />
             
-            {/* Default route */}
+            <Route
+              path="/records"
+              element={isAuthenticated ? <PatientRecords setAuth={setAuth} /> : <Navigate to="/login" replace />}
+            />
+            
             <Route path="/" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />} />
             <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>
