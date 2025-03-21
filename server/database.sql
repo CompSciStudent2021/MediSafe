@@ -21,7 +21,9 @@ CREATE TABLE patients (
     patient_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID UNIQUE NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
     doctor_id UUID NOT NULL REFERENCES users(user_id) ON DELETE SET NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    encrypted_data TEXT,
+    encryption_version INT DEFAULT 1
 );
 
 -- PATIENT RECORDS TABLE (Stores medical records linked to patients & doctors)
@@ -58,7 +60,9 @@ CREATE TABLE prescriptions (
     blockchain_id VARCHAR(255) NOT NULL,
     blockchain_hash VARCHAR(255) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    encrypted_data TEXT,
+    encryption_version INT DEFAULT 1
 );
 
 -- INDEXES FOR OPTIMIZATION
@@ -133,3 +137,4 @@ WHERE table_name = 'appointments';
 
 -- Alter patient_records to add a document column
 ALTER TABLE patient_records ADD COLUMN document BYTEA;
+

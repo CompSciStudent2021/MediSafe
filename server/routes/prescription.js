@@ -1,26 +1,29 @@
-const router = require("express").Router();
-const authorisation = require("../middleware/authorisation");
-const pool = require("../db");
-const { prescriptionService } = require('../blockchain/index');
+const express = require('express');
+const router = express.Router();
+const pool = require('../db');
+const auth = require('../middleware/authorisation');
+const { encrypt, decrypt } = require('../utils/encryption');
+const { prescriptionService } = require('../blockchain');
 
-// Create a new prescription (doctor only)
-router.post("/", authorisation, async (req, res) => {
+// Create a new prescription
+router.post('/', auth, async (req, res) => {
   try {
-    // Check if the user is a doctor
-    const userRole = await pool.query(
+    const { patient_email, medication, dosage, frequency, duration, notes } = req.body;
+    const userId = req.user.id;
+
+    // Check if user is a doctor
+    const userCheck = await pool.query(
       "SELECT user_role FROM users WHERE user_id = $1",
-      [req.user.id]
+      [userId]
     );
     
-    if (userRole.rows[0].user_role !== "doctor") {
-      return res.status(403).json("Only doctors can create prescriptions");
+    if (userCheck.rows[0].user_role !== 'doctor') {
+      return res.status(403).json("Unauthorized: Only doctors can create prescriptions");
     }
-    
-    const { patient_email, medication, dosage, frequency, duration, notes } = req.body;
-    
-    // Check if patient exists
+
+    // Get patient ID from email
     const patientQuery = await pool.query(
-      "SELECT u.user_id FROM users u WHERE u.user_email = $1 AND u.user_role = 'patient'",
+      "SELECT user_id FROM users WHERE user_email = $1",
       [patient_email]
     );
     
@@ -29,87 +32,115 @@ router.post("/", authorisation, async (req, res) => {
     }
     
     const patientId = patientQuery.rows[0].user_id;
-    const doctorId = req.user.id;
-
-    // Create the prescription on blockchain
+    
+    // Store in blockchain
     const blockchainResult = await prescriptionService.createPrescription({
-      patientId: patientId.toString(),
-      doctorId: doctorId.toString(),
+      patientId: patientId,
+      doctorId: userId,
       medicationName: medication,
+      dosage: dosage,
+      frequency: frequency,
+      duration: duration,
+      notes: notes || ''
+    });
+
+    // Encrypt sensitive data
+    const sensitiveData = {
+      medication,
       dosage,
       frequency,
       duration,
       notes
-    });
-
-    // Store prescription reference in database
+    };
+    
+    const encryptedData = encrypt(sensitiveData);
+    
+    // Store in database with encrypted data
     const newPrescription = await pool.query(
-      "INSERT INTO prescriptions (patient_id, doctor_id, medication, dosage, frequency, duration, notes, blockchain_id, blockchain_hash) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *",
+      `INSERT INTO prescriptions 
+      (patient_id, doctor_id, medication, dosage, frequency, duration, notes, 
+       blockchain_id, blockchain_hash, encrypted_data) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
+       RETURNING *`,
       [
-        patientId,
-        doctorId,
-        medication,
-        dosage,
-        frequency,
-        duration,
-        notes,
+        patientId, 
+        userId, 
+        medication,  // Consider removing or minimizing these unencrypted fields in production
+        dosage, 
+        frequency, 
+        duration, 
+        notes, 
         blockchainResult.prescriptionId,
-        blockchainResult.transactionHash
+        blockchainResult.transactionHash,
+        encryptedData
       ]
     );
 
-    res.json({
-      prescription: newPrescription.rows[0],
-      blockchain: blockchainResult
-    });
+    res.json(newPrescription.rows[0]);
   } catch (err) {
     console.error(err.message);
     res.status(500).json("Server Error");
   }
 });
 
-// Get all prescriptions for current user (doctor or patient)
-router.get("/", authorisation, async (req, res) => {
+// Get all prescriptions for logged-in user (doctor or patient)
+router.get('/', auth, async (req, res) => {
   try {
     const userId = req.user.id;
-    const userRole = await pool.query(
+    
+    // First, get user role
+    const userRoleQuery = await pool.query(
       "SELECT user_role FROM users WHERE user_id = $1",
       [userId]
     );
     
-    let prescriptionsQuery;
+    const userRole = userRoleQuery.rows[0].user_role;
     
-    // If doctor, get all prescriptions created by them
-    // If patient, get all prescriptions for them
-    if (userRole.rows[0].user_role === "doctor") {
-      prescriptionsQuery = await pool.query(
+    let prescriptions;
+    
+    // Different queries based on role
+    if (userRole === 'doctor') {
+      prescriptions = await pool.query(
         `SELECT p.*, 
           u_patient.user_name as patient_name, 
-          u_patient.user_email as patient_email,
-          u_doctor.user_name as doctor_name
+          u_doctor.user_name as doctor_name,
+          p.encrypted_data
         FROM prescriptions p
         JOIN users u_patient ON p.patient_id = u_patient.user_id
         JOIN users u_doctor ON p.doctor_id = u_doctor.user_id
-        WHERE p.doctor_id = $1
-        ORDER BY p.created_at DESC`,
+        WHERE p.doctor_id = $1`,
         [userId]
       );
     } else {
-      prescriptionsQuery = await pool.query(
+      prescriptions = await pool.query(
         `SELECT p.*, 
           u_patient.user_name as patient_name, 
-          u_patient.user_email as patient_email,
-          u_doctor.user_name as doctor_name
+          u_doctor.user_name as doctor_name,
+          p.encrypted_data
         FROM prescriptions p
         JOIN users u_patient ON p.patient_id = u_patient.user_id
         JOIN users u_doctor ON p.doctor_id = u_doctor.user_id
-        WHERE p.patient_id = $1
-        ORDER BY p.created_at DESC`,
+        WHERE p.patient_id = $1`,
         [userId]
       );
     }
     
-    res.json(prescriptionsQuery.rows);
+    // Decrypt sensitive data for each prescription
+    const decryptedPrescriptions = prescriptions.rows.map(prescription => {
+      if (prescription.encrypted_data) {
+        const decryptedData = decrypt(prescription.encrypted_data);
+        // Return prescription with decrypted data merged in
+        return {
+          ...prescription,
+          ...decryptedData,
+          // Remove the encrypted data field from response
+          encrypted_data: undefined
+        };
+      }
+      return prescription;
+    });
+    
+    res.json(decryptedPrescriptions);
   } catch (err) {
     console.error(err.message);
     res.status(500).json("Server Error");
@@ -117,7 +148,7 @@ router.get("/", authorisation, async (req, res) => {
 });
 
 // Get a specific prescription by ID with blockchain verification
-router.get("/:id", authorisation, async (req, res) => {
+router.get("/:id", auth, async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
@@ -157,7 +188,7 @@ router.get("/:id", authorisation, async (req, res) => {
 });
 
 // Update prescription status (doctor only)
-router.put("/:id/status", authorisation, async (req, res) => {
+router.put("/:id/status", auth, async (req, res) => {
   try {
     const { id } = req.params;
     const doctorId = req.user.id;

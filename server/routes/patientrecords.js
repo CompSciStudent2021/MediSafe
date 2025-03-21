@@ -94,10 +94,20 @@ router.post("/", authorisation, upload.single("document"), async (req, res) => {
     }
     const patientId = patientIdQuery.rows[0].patient_id;
 
-    // Insert into patient_records
+    // Encrypt sensitive data
+    const sensitiveData = {
+      condition,
+      treatment,
+      doctor_notes
+    };
+
+    const encryptedData = encrypt(sensitiveData);
+
     const newRecord = await pool.query(
-      "INSERT INTO patient_records (patient_id, doctor_id, condition, treatment, doctor_notes, document) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
-      [patientId, doctorId, condition, treatment, doctor_notes, document]
+      `INSERT INTO patient_records 
+      (patient_id, doctor_id, condition, treatment, doctor_notes, has_document, encrypted_data) 
+      VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+      [patientId, doctorId, condition, treatment, doctor_notes, hasDocument, encryptedData]
     );
 
     res.json(newRecord.rows[0]);
