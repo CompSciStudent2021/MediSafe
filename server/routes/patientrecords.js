@@ -3,6 +3,7 @@ const router = express.Router();
 const authorisation = require("../middleware/authorisation");
 const pool = require("../db");
 const multer = require("multer");
+const { encrypt, decrypt } = require('../utils/encryption');
 
 // Configure file storage (for uploading reports)
 const storage = multer.memoryStorage();
@@ -30,7 +31,7 @@ router.get("/", authorisation, async (req, res) => {
       // Doctors should see their assigned patients' records
       patientRecords = await pool.query(
         `SELECT pr.record_id, u.user_name AS patient_name, pr.condition, 
-                pr.treatment, pr.doctor_notes, pr.created_at, pr.document
+                pr.treatment, pr.doctor_notes, pr.created_at, pr.document, pr.encrypted_data
          FROM patient_records pr 
          JOIN patients p ON pr.patient_id = p.patient_id 
          JOIN users u ON p.user_id = u.user_id  
@@ -41,7 +42,7 @@ router.get("/", authorisation, async (req, res) => {
       // Patients should only see their own records
       patientRecords = await pool.query(
         `SELECT pr.record_id, pr.condition, pr.treatment, pr.doctor_notes, 
-                pr.created_at, pr.document, u.user_name AS doctor_name
+                pr.created_at, pr.document, u.user_name AS doctor_name, pr.encrypted_data
          FROM patient_records pr
          JOIN patients p ON pr.patient_id = p.patient_id
          JOIN users u ON pr.doctor_id = u.user_id
@@ -58,7 +59,20 @@ router.get("/", authorisation, async (req, res) => {
       document: record.document ? record.document.toString("base64") : null
     }));
 
-    res.json(formattedRecords);
+    // Decrypt sensitive data for each record
+    const decryptedRecords = formattedRecords.map(record => {
+      if (record.encrypted_data) {
+        const decryptedData = decrypt(record.encrypted_data);
+        return {
+          ...record,
+          ...decryptedData,
+          encrypted_data: undefined
+        };
+      }
+      return record;
+    });
+
+    res.json(decryptedRecords);
   } catch (err) {
     console.error("Error fetching records:", err.message);
     res.status(500).json("Server Error");
