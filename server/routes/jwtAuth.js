@@ -85,7 +85,7 @@ router.post('/login', async (req, res) => {
 });
 
 // Verify route
-router.post('/verify', require('../middleware/authorisation'), async (req, res) => {
+router.get('/verify', require('../middleware/authorisation'), (req, res) => {
     try {
         res.json(true);
     } catch (err) {

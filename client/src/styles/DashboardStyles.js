@@ -340,15 +340,15 @@ export const FormInput = styled.input`
 
 export const FormSelect = styled.select`
   width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #ddd;
+  padding: 10px;
+  border: 1px solid #ced4da;
   border-radius: 4px;
+  background-color: white;
   font-size: 1rem;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition: border-color 0.2s;
   
   &:focus {
     border-color: ${colors.primary};
-    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.1);
     outline: none;
   }
 `;
@@ -456,4 +456,22 @@ export const ModalCloseButton = styled.button`
 export const ModalTitle = styled.h3`
   margin-bottom: 1.5rem;
   font-size: 1.5rem;
+`;
+
+export const InfoBox = styled.div`
+  display: flex;
+  align-items: flex-start;
+  background-color: #e8f4fd;
+  border-left: 4px solid #0d6efd;
+  border-radius: 4px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  
+  p {
+    margin: 0 0 0.5rem 0;
+    
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
 `;

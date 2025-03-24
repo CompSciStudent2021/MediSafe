@@ -6,6 +6,10 @@ import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 
+// Add these imports for time formatting
+import timeGridPlugin from '@fullcalendar/timegrid';
+import { formatDate } from '@fullcalendar/core';
+
 import DashboardLayout from './layout/DashboardLayout';
 import { 
   AppointmentPageTitle, 
@@ -32,6 +36,7 @@ const Appointments = ({ setAuth }) => {
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
     doctor_email: '',
+    patient_email: '',
     appointment_date: '',
     reason: '',
   });
@@ -90,25 +95,52 @@ const Appointments = ({ setAuth }) => {
   // Toggle Form Visibility
   const toggleForm = () => {
     setShowForm((prevShowForm) => !prevShowForm);
+    // Reset form data when showing the form
+    if (!showForm) {
+      setFormData({
+        doctor_email: '',
+        patient_email: '',
+        appointment_date: '',
+        reason: '',
+      });
+    }
   };
 
   // Submit New Appointment
   const submitAppointment = async (e) => {
     e.preventDefault();
     try {
+      // Prepare the data based on user role
+      const appointmentData = userRole === 'doctor' 
+        ? { 
+            patient_email: formData.patient_email,
+            appointment_date: formData.appointment_date,
+            reason: formData.reason
+          }
+        : {
+            doctor_email: formData.doctor_email,
+            appointment_date: formData.appointment_date,
+            reason: formData.reason
+          };
+
       const res = await fetch('http://localhost:5000/appointments', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           token: localStorage.token,
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(appointmentData),
       });
 
       if (res.ok) {
         toast.success('Appointment scheduled successfully!');
         setShowForm(false);
-        setFormData({ doctor_email: '', appointment_date: '', reason: '' });
+        setFormData({ 
+          doctor_email: '', 
+          patient_email: '',
+          appointment_date: '', 
+          reason: '' 
+        });
         fetchAppointments();
       } else {
         const errorText = await res.text();
@@ -139,6 +171,40 @@ const Appointments = ({ setAuth }) => {
     setSelectedAppointment(appointment);
   };
 
+  // Format time for display in 24-hour format
+  const formatAppointmentTime = (dateTimeString) => {
+    const date = new Date(dateTimeString);
+    return date.toLocaleTimeString([], { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: false // This sets 24-hour time format
+    });
+  };
+
+  // Inside the component, add this function to determine event color based on status
+  const getEventColor = (status) => {
+    switch(status) {
+      case 'completed':
+        return '#28a745'; // Green for completed
+      case 'cancelled':
+        return '#dc3545'; // Red for cancelled
+      default:
+        return '#0066cc'; // Blue for scheduled (default)
+    }
+  };
+
+  // Add this helper function to get the status color
+  const getStatusColor = (status) => {
+    switch(status) {
+      case 'completed':
+        return '#28a745'; // Green
+      case 'cancelled':
+        return '#dc3545'; // Red
+      default:
+        return '#0066cc'; // Blue
+    }
+  };
+
   return (
     <DashboardLayout active="appointments" onLogout={logout}>
       <AppointmentPageTitle>Appointments</AppointmentPageTitle>
@@ -150,16 +216,34 @@ const Appointments = ({ setAuth }) => {
 
       {showForm && (
         <Form onSubmit={submitAppointment}>
-          <FormGroup>
-            <FormLabel>Doctor Email</FormLabel>
-            <FormInput
-              type="email"
-              name="doctor_email"
-              value={formData.doctor_email}
-              onChange={handleInputChange}
-              required
-            />
-          </FormGroup>
+          {userRole === 'doctor' ? (
+            // Doctor's view - selecting a patient
+            <FormGroup>
+              <FormLabel>Patient Email</FormLabel>
+              <FormInput
+                type="email"
+                name="patient_email"
+                value={formData.patient_email}
+                onChange={handleInputChange}
+                placeholder="Enter your patient's email"
+                required
+              />
+            </FormGroup>
+          ) : (
+            // Patient's view - selecting a doctor
+            <FormGroup>
+              <FormLabel>Doctor Email</FormLabel>
+              <FormInput
+                type="email"
+                name="doctor_email"
+                value={formData.doctor_email}
+                onChange={handleInputChange}
+                placeholder="Enter your doctor's email"
+                required
+              />
+            </FormGroup>
+          )}
+          
           <FormGroup>
             <FormLabel>Appointment Date & Time</FormLabel>
             <FormInput
@@ -185,22 +269,43 @@ const Appointments = ({ setAuth }) => {
         </Form>
       )}
 
-      {/* Appointments Calendar View */}
+      {/* Appointments Calendar View with updated configuration */}
       <CalendarContainer style={{ marginTop: '1.5rem' }}>
         <FullCalendar
-          plugins={[dayGridPlugin, interactionPlugin]}
+          plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
           initialView="dayGridMonth"
-          events={appointments.map((appt) => ({
-            id: appt.appointment_id.toString(),
-            title: `${appt.patient_name || appt.doctor_name} - ${appt.reason || 'No Reason Provided'}`,
-            start: appt.appointment_date,
-          }))}
+          headerToolbar={{
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,timeGridDay'
+          }}
+          events={appointments.map((appt) => {
+            console.log("Appointment data:", appt); // Debug log
+            return {
+              id: appt.appointment_id.toString(),
+              title: `${appt.patient_name || appt.doctor_name} - ${appt.reason || 'No Reason Provided'}`,
+              start: appt.appointment_date,
+              backgroundColor: getEventColor(appt.status),
+              borderColor: getEventColor(appt.status),
+              extendedProps: {
+                reason: appt.reason || 'No Reason Provided',
+                status: appt.status,
+                patientName: appt.patient_name,
+                doctorName: appt.doctor_name,
+              }
+            };
+          })}
           eventClick={handleEventClick}
           height="auto"
+          eventTimeFormat={{
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false // This sets 24-hour time format
+          }}
         />
       </CalendarContainer>
 
-      {/* Appointment Details Modal */}
+      {/* Update the modal display format too */}
       {selectedAppointment && (
         <ModalOverlay>
           <ModalContent>
@@ -209,11 +314,22 @@ const Appointments = ({ setAuth }) => {
             </ModalCloseButton>
             <ModalTitle>Appointment Details</ModalTitle>
             <AppointmentDetails>
-              <p><strong>Date:</strong> {new Date(selectedAppointment.appointment_date).toLocaleString()}</p>
+              <p><strong>Date:</strong> {new Date(selectedAppointment.appointment_date).toLocaleString([], {hour12: false})}</p>
               <p><strong>Patient:</strong> {selectedAppointment.patient_name || 'N/A'}</p>
               <p><strong>Doctor:</strong> {selectedAppointment.doctor_name || 'N/A'}</p>
-              <p><strong>Reason:</strong> {selectedAppointment.reason}</p>
-              <p><strong>Status:</strong> {selectedAppointment.status || 'Scheduled'}</p>
+              <p><strong>Reason:</strong> {selectedAppointment.reason || 'No reason provided'}</p>
+              <p>
+                <strong>Status:</strong> 
+                <span style={{ 
+                  color: getStatusColor(selectedAppointment.status),
+                  fontWeight: 'bold',
+                  padding: '2px 8px',
+                  borderRadius: '4px',
+                  backgroundColor: `${getStatusColor(selectedAppointment.status)}20` // 20 is opacity hex
+                }}>
+                  {selectedAppointment.status || 'Scheduled'}
+                </span>
+              </p>
             </AppointmentDetails>
           </ModalContent>
         </ModalOverlay>

@@ -37,6 +37,7 @@ CREATE TABLE patient_records (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+
 -- APPOINTMENTS TABLE (Tracks appointments between doctors and patients)
 CREATE TABLE appointments (
     appointment_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),

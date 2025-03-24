@@ -4,7 +4,8 @@ import {
   FaCalendarAlt, 
   FaNotesMedical, 
   FaSignOutAlt,
-  FaPills // Add this import
+  FaPills,
+  FaMapMarkerAlt
 } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import { 
@@ -16,13 +17,23 @@ import {
   SidebarOverlay 
 } from '../../styles/DashboardStyles';
 
+// Special wrapper component to handle the warning about props
+const CustomNavLink = ({ to, active, children }) => {
+  // This prevents the isActive prop from being passed to the DOM
+  return (
+    <NavLink to={to} $isActive={active}>
+      {children}
+    </NavLink>
+  );
+};
+
 const Sidebar = ({ 
   active, 
   onLogout, 
-  isSidebarOpen, 
-  setSidebarOpen, 
-  handleTouchStart, 
-  handleTouchMove 
+  isSidebarOpen = true, 
+  setSidebarOpen = () => {}, 
+  handleTouchStart = () => {}, 
+  handleTouchMove = () => {} 
 }) => {
   return (
     <>
@@ -36,43 +47,50 @@ const Sidebar = ({
         </Link>
         
         <SidebarNav>
-          <NavLink 
+          <CustomNavLink 
             to="/dashboard" 
-            isActive={active === 'dashboard'}
+            active={active === 'dashboard'}
           >
             <FaCalendarAlt size={20} /> Dashboard
-          </NavLink>
-          <NavLink 
+          </CustomNavLink>
+          <CustomNavLink 
             to="/appointments" 
-            isActive={active === 'appointments'}
+            active={active === 'appointments'}
           >
             <FaCalendarAlt size={20} /> Appointments
-          </NavLink>
-          <NavLink 
-            to="/records" 
-            $isActive={active === 'records'} // Note the $ prefix
+          </CustomNavLink>
+          <CustomNavLink 
+            to="/patientrecords" 
+            active={active === 'patientrecords'}
           >
             <FaNotesMedical size={20} /> Patient Records
-          </NavLink>
-          <NavLink 
+          </CustomNavLink>
+          <CustomNavLink 
             to="/profile" 
-            isActive={active === 'profile'}
+            active={active === 'profile'}
           >
             <FaUserMd size={20} /> Profile
-          </NavLink>
-          <NavLink 
+          </CustomNavLink>
+          <CustomNavLink 
             to="/prescriptions" 
-            isActive={active === 'prescriptions'}
+            active={active === 'prescriptions'}
           >
             <FaPills size={20} /> Prescriptions
-          </NavLink>
+          </CustomNavLink>
+          <CustomNavLink 
+            to="/facilities" 
+            active={active === 'facilities'}
+          >
+            <FaMapMarkerAlt size={20} /> Medical Facilities
+          </CustomNavLink>
         </SidebarNav>
         
         <LogoutButton onClick={onLogout}>
-          <FaSignOutAlt /> Logout
+          <FaSignOutAlt size={20} /> Logout
         </LogoutButton>
       </SidebarWrapper>
 
+      {/* Only show overlay on mobile when sidebar is open */}
       <SidebarOverlay 
         isOpen={isSidebarOpen} 
         onClick={() => setSidebarOpen(false)} 

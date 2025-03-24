@@ -23,6 +23,17 @@ export const CalendarContainer = styled.div`
     background-color: ${colors.primary} !important;
   }
   
+  .fc-event-title, .fc-event-time {
+    color: white !important;
+    font-weight: 500;
+  }
+  
+  /* Make sure all event text is white */
+  .fc-event-title-container,
+  .fc-event-main {
+    color: white !important;
+  }
+  
   .fc-day-today {
     background-color: rgba(13, 110, 253, 0.05) !important;
   }

@@ -10,6 +10,7 @@ import Profile from "./components/Profile";
 import PatientRecords from "./components/PatientRecords";
 import Appointments from "./components/Appointments";
 import Prescriptions from "./components/Prescriptions"; 
+import TransferData from './components/TransferData';
 
 // Import style reset without any other CSS
 import { createGlobalStyle } from 'styled-components';
@@ -44,11 +45,18 @@ function App() {
         headers: { token: localStorage.token }
       });
 
+      if (!response.ok) {
+        console.log("Auth verification failed:", response.status);
+        setIsAuthenticated(false);
+        return;
+      }
+
+      // Only try to parse JSON if response is successful
       const parseRes = await response.json();
-      
       parseRes === true ? setIsAuthenticated(true) : setIsAuthenticated(false);
     } catch (err) {
-      console.error(err.message);
+      console.error("Auth verification error:", err.message);
+      setIsAuthenticated(false);
     }
   }
 
@@ -116,8 +124,13 @@ function App() {
             />
             
             <Route
-              path="/records"
+              path="/patientrecords"
               element={isAuthenticated ? <PatientRecords setAuth={setAuth} /> : <Navigate to="/login" replace />}
+            />
+            
+            <Route 
+              path="/transfer-data" 
+              element={isAuthenticated ? <TransferData setAuth={setAuth} /> : <Navigate to="/login" replace />} 
             />
             
             <Route path="/" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />} />

@@ -88,9 +88,42 @@ async function getPrescriptionsCount() {
   }
 }
 
+// Revoke a prescription for GDPR compliance
+async function revokePrescription(id) {
+  try {
+    const contract = await getContractInstance();
+    const accounts = await getAccounts();
+    
+    // First, ensure the prescription exists and is active
+    const prescription = await contract.methods.getPrescription(id).call();
+    
+    // If it's already inactive, no need to do anything
+    if (!prescription.isActive) {
+      return {
+        status: 'already-inactive',
+        prescriptionId: id
+      };
+    }
+    
+    // Deactivate the prescription (this is the best we can do on blockchain)
+    const result = await contract.methods.togglePrescriptionStatus(id)
+      .send({ from: accounts[0], gas: 500000 });
+    
+    return {
+      status: 'revoked',
+      transactionHash: result.transactionHash,
+      prescriptionId: id
+    };
+  } catch (error) {
+    console.error(`Error revoking prescription ${id} for GDPR:`, error);
+    throw error;
+  }
+}
+
 module.exports = {
   createPrescription,
   getPrescription,
   togglePrescriptionStatus,
-  getPrescriptionsCount
+  getPrescriptionsCount,
+  revokePrescription  // Add this new function
 };

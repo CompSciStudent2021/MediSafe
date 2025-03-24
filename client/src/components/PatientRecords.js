@@ -16,6 +16,7 @@ import {
 } from '../styles/DashboardStyles';
 
 const PatientRecords = ({ setAuth }) => {
+  // State variables remain the same
   const [userRole, setUserRole] = useState("");
   const [patientRecords, setPatientRecords] = useState([]);
   const [showForm, setShowForm] = useState(false);
@@ -61,6 +62,7 @@ const PatientRecords = ({ setAuth }) => {
       }
 
       const parseData = await res.json();
+      console.log("Patient records data:", parseData); // Debug log to check record structure
       setPatientRecords(parseData);
     } catch (err) {
       console.error("Error fetching patient records:", err.message);
@@ -180,6 +182,15 @@ const PatientRecords = ({ setAuth }) => {
     }
   };
 
+  // Check if a record has a document (handle different possible formats)
+  const hasDocument = (record) => {
+    return (
+      record.has_document === true || 
+      record.document || 
+      (record.document !== null && record.document !== undefined)
+    );
+  };
+
   return (
     <DashboardLayout active="records" onLogout={logout}>
       <h2 className="mb-4 text-center">Patient Records</h2>
@@ -274,7 +285,8 @@ const PatientRecords = ({ setAuth }) => {
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                 <h4 style={{ margin: 0 }}>{record.condition}</h4>
-                {record.has_document && (
+                {/* Updated condition check for document existence */}
+                {hasDocument(record) && (
                   <button 
                     onClick={() => handleDownload(record.record_id)}
                     style={{

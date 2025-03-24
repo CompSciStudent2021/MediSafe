@@ -1,15 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "react-toastify";
-import { FaUserMd, FaCalendarAlt, FaNotesMedical, FaPills } from "react-icons/fa";
+import { FaUserMd, FaCalendarAlt, FaNotesMedical, FaPills, FaClock } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import '../App.css';
 import '../index.css';
 
-// Import our new components
-import Sidebar from "./layout/Sidebar";
+// Import our components
+import DashboardLayout from "./layout/DashboardLayout";
 import StatCard from "./dashboard/StatCard";
 import FeatureCard from "./dashboard/FeatureCard";
-import DashboardLayout from "./layout/DashboardLayout";
 import { 
   WelcomeSection, 
   StatsContainer, 
@@ -20,10 +19,15 @@ import {
 const Dashboard = ({ setAuth }) => {
   const [name, setName] = useState("");
   const [role, setRole] = useState("");
-  const [isSidebarOpen, setSidebarOpen] = useState(false);
-  const [touchStart, setTouchStart] = useState(null);
+  const [stats, setStats] = useState({
+    appointmentsCount: 0,
+    recordsCount: 0,
+    prescriptionsCount: 0
+  });
+  const [todayAppointments, setTodayAppointments] = useState([]);
   const navigate = useNavigate();
 
+  // Fetch user profile data
   const getProfile = async () => {
     try {
       const res = await fetch("http://localhost:5000/profile", {
@@ -50,6 +54,68 @@ const Dashboard = ({ setAuth }) => {
     }
   };
 
+  // Fetch dashboard statistics
+  const fetchDashboardStats = async () => {
+    try {
+      // Notice the fixed URLs below - using patientrecords instead of records
+      const appointmentsRes = await fetch("http://localhost:5000/appointments/count", {
+        method: "GET",
+        headers: { token: localStorage.token },
+      });
+
+      // Changed to patientrecords to match your server route
+      const recordsRes = await fetch("http://localhost:5000/patientrecords/count", {
+        method: "GET",
+        headers: { token: localStorage.token },
+      });
+      
+      const prescriptionsRes = await fetch("http://localhost:5000/prescriptions/count", {
+        method: "GET",
+        headers: { token: localStorage.token },
+      });
+
+      if (!appointmentsRes.ok || !recordsRes.ok || !prescriptionsRes.ok) {
+        throw new Error("Failed to fetch dashboard statistics");
+      }
+
+      const appointmentsData = await appointmentsRes.json();
+      const recordsData = await recordsRes.json();
+      const prescriptionsData = await prescriptionsRes.json();
+
+      setStats({
+        appointmentsCount: appointmentsData.count || 0,
+        recordsCount: recordsData.count || 0,
+        prescriptionsCount: prescriptionsData.count || 0
+      });
+    } catch (err) {
+      console.error("Error fetching dashboard stats:", err.message);
+      toast.error("Failed to load dashboard statistics.");
+    }
+  };
+
+  // Fetch today's appointments
+  const fetchTodayAppointments = async () => {
+    try {
+      const today = new Date().toISOString().split('T')[0]; // Get today's date in YYYY-MM-DD format
+      
+      const res = await fetch(`http://localhost:5000/appointments/today`, {
+        method: "GET",
+        headers: { token: localStorage.token },
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to fetch today's appointments");
+      }
+
+      const appointmentsData = await res.json();
+      console.log("Today's appointments data:", appointmentsData); // Debug log to see what's returned
+      setTodayAppointments(appointmentsData);
+    } catch (err) {
+      console.error("Error fetching today's appointments:", err.message);
+    }
+  };
+
+  // Logout function
   const logout = async (e) => {
     e.preventDefault();
     try {
@@ -62,28 +128,17 @@ const Dashboard = ({ setAuth }) => {
     }
   };
 
-  const handleTouchStart = (e) => {
-    const touch = e.touches[0];
-    setTouchStart(touch.clientX);
-  };
-
-  const handleTouchMove = (e) => {
-    if (!touchStart) return;
-    
-    const touch = e.touches[0];
-    const currentX = touch.clientX;
-    const diff = touchStart - currentX;
-
-    if (diff > 50) {
-      setSidebarOpen(false);
-    } else if (diff < -50) {
-      setSidebarOpen(true);
-    }
-  };
-
   useEffect(() => {
     getProfile();
+    fetchDashboardStats();
+    fetchTodayAppointments();
   }, []);
+
+  // Format time for display (converts "2024-03-25T14:30:00" to "2:30 PM")
+  const formatAppointmentTime = (dateTimeString) => {
+    const date = new Date(dateTimeString);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
 
   return (
     <DashboardLayout active="dashboard" onLogout={logout}>
@@ -96,7 +151,7 @@ const Dashboard = ({ setAuth }) => {
         <StatCard 
           icon={<FaCalendarAlt />} 
           title="Appointments"
-          value="5"
+          value={stats.appointmentsCount.toString()}
           label="Upcoming"
           iconClass="appointments"
         />
@@ -104,18 +159,44 @@ const Dashboard = ({ setAuth }) => {
         <StatCard 
           icon={<FaNotesMedical />} 
           title="Records"
-          value="12"
+          value={stats.recordsCount.toString()}
           label="Total Records"
           iconClass="records"
         />
         
         <StatCard 
-          icon={<FaUserMd />} 
-          title="Profile"
-          label="Last updated: Today"
-          iconClass="profile"
+          icon={<FaPills />} 
+          title="Prescriptions"
+          value={stats.prescriptionsCount.toString()}
+          label="Active Prescriptions"
+          iconClass="prescriptions"
         />
       </StatsContainer>
+
+      <SectionTitle>Today's Appointments</SectionTitle>
+      <FeaturesContainer>
+        {todayAppointments.length === 0 ? (
+          <div style={{ textAlign: 'center', width: '100%', padding: '20px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
+            <FaClock style={{ fontSize: '2rem', color: '#6c757d', marginBottom: '10px' }} />
+            <p style={{ margin: 0 }}>No appointments scheduled for today</p>
+          </div>
+        ) : (
+          todayAppointments.map(appointment => (
+            <FeatureCard 
+              key={appointment.appointment_id}
+              to={`/appointments`}
+              icon={<FaCalendarAlt className="feature-icon" />}
+              title={formatAppointmentTime(appointment.appointment_date)}
+              description={
+                role === 'doctor' 
+                  ? `Patient: ${appointment.patient_name || 'N/A'}`
+                  : `Doctor: ${appointment.doctor_name || 'N/A'}`
+              }
+              subtitle={appointment.reason || 'No reason provided'}
+            />
+          ))
+        )}
+      </FeaturesContainer>
 
       <SectionTitle>Quick Access</SectionTitle>
       <FeaturesContainer>
@@ -127,7 +208,7 @@ const Dashboard = ({ setAuth }) => {
         />
         
         <FeatureCard 
-          to="/records"  // Ensure this matches the path in App.js
+          to="/records"
           icon={<FaNotesMedical className="feature-icon" />}
           title="Patient Records"
           description="View and manage medical records"
