@@ -11,6 +11,8 @@ import PatientRecords from "./components/PatientRecords";
 import Appointments from "./components/Appointments";
 import Prescriptions from "./components/Prescriptions"; 
 import TransferData from './components/TransferData';
+import TwoFactorSetup from './components/TwoFactorSetup';
+import TwoFactorLogin from './components/TwoFactorLogin'; // Add this import
 
 // Import style reset without any other CSS
 import { createGlobalStyle } from 'styled-components';
@@ -132,6 +134,18 @@ function App() {
               path="/transfer-data" 
               element={isAuthenticated ? <TransferData setAuth={setAuth} /> : <Navigate to="/login" replace />} 
             />
+            
+            <Route
+              path="/two-factor-setup"
+              element={isAuthenticated ? <TwoFactorSetup setAuth={setAuth} /> : <Navigate to="/login" replace />}
+            />
+            
+            <Route 
+              path="/setup-2fa" 
+              element={isAuthenticated ? <TwoFactorSetup setAuth={setAuth} /> : <Navigate to="/login" replace />} 
+            />
+            
+            <Route path="/login/2fa" element={!isAuthenticated ? <TwoFactorLogin setAuth={setAuth} /> : <Navigate to="/dashboard" replace />} />
             
             <Route path="/" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />} />
             <Route path="*" element={<Navigate to="/login" replace />} />

@@ -208,7 +208,7 @@ const Dashboard = ({ setAuth }) => {
         />
         
         <FeatureCard 
-          to="/records"
+          to="/patientrecords"
           icon={<FaNotesMedical className="feature-icon" />}
           title="Patient Records"
           description="View and manage medical records"

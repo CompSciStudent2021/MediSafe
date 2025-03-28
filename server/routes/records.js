@@ -1,5 +1,3 @@
-// Add this endpoint to your patient_records.js file
-
 // Count Records
 router.get("/count", authorisation, async (req, res) => {
   try {

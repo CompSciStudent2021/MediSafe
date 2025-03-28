@@ -27,6 +27,9 @@ app.use("/prescriptions", require("./routes/prescription"));
 // Transfer Data routes - update the path to match expected URLs
 app.use('/', require("./routes/transfer"));
 
+// 2FA routes
+app.use("/auth/2fa", require("./routes/twoFactorAuth"));
+
 app.listen(5000, () => {
     console.log('server has started on port 5000');
 });

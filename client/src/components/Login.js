@@ -1,8 +1,9 @@
 import React, { Fragment, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { FaEnvelope, FaLock, FaUserMd } from "react-icons/fa";
 import { motion } from "framer-motion";
+import TwoFactorLogin from './TwoFactorLogin'; // Import the 2FA component
 import '../App.css';
 import '../index.css';
 
@@ -11,17 +12,25 @@ const Login = ({ setAuth }) => {
         email: "",
         password: ""
     });
+    
+    const [showTwoFactor, setShowTwoFactor] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const { email, password } = inputs;
+    
+    const navigate = useNavigate();
 
     const onChange = e => setInputs({ ...inputs, [e.target.name]: e.target.value });
 
     const onSubmitForm = async e => {
         e.preventDefault();
+        
         if (!email || !password) {
             toast.error("Please enter both email and password");
             return;
         }
+        
+        setIsSubmitting(true);
 
         try {
             const body = { email, password };
@@ -45,10 +54,17 @@ const Login = ({ setAuth }) => {
             const parseRes = await response.json();
             console.log("Parsed response:", parseRes);
 
+            // Check if 2FA is required - handle both property names for compatibility
+            if (parseRes.requireTwoFactor || parseRes.requires2FA) {
+                navigate("/login/2fa", { state: { email } });
+                return;
+            }
+
             if (parseRes.token) {
                 localStorage.setItem("token", parseRes.token);
                 setAuth(true);
                 toast.success("Logged in Successfully");
+                navigate('/dashboard');
             } else {
                 setAuth(false);
                 toast.error("Invalid login response");
@@ -56,9 +72,17 @@ const Login = ({ setAuth }) => {
         } catch (err) {
             console.error(err.message);
             toast.error("Server Error");
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
+    // If 2FA is required, show the 2FA component
+    if (showTwoFactor) {
+        return <TwoFactorLogin email={email} setAuth={setAuth} />;
+    }
+
+    // Otherwise show the normal login form
     return (
         <div className="login-container">
             <motion.div 
@@ -104,14 +128,15 @@ const Login = ({ setAuth }) => {
                         className="login-button"
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
+                        disabled={isSubmitting}
                     >
-                        Login
+                        {isSubmitting ? 'Logging in...' : 'Login'}
                     </motion.button>
                 </form>
 
                 <div className="login-footer">
                     <p>Don't have an account?</p>
-                    <Link to="/register" className="register-link">Register here</Link>
+                    <Link to="/register" className="register-link">Register</Link>
                 </div>
             </motion.div>
         </div>

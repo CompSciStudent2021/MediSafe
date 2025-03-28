@@ -57,8 +57,10 @@ router.post("/register", validInfo, async (req, res) => {
     }
 });
 
+// Update the login route to handle 2FA
+
 // Login route
-router.post('/login', async (req, res) => {
+router.post('/login', validInfo, async (req, res) => {
     try {
         const { email, password } = req.body;
 
@@ -74,13 +76,54 @@ router.post('/login', async (req, res) => {
             return res.status(401).json({ error: "Invalid email or password" });
         }
 
-        // Return JWT token including user role
+        // Check if 2FA is enabled
+        if (user.rows[0].two_factor_enabled) {
+            return res.json({ 
+                requireTwoFactor: true,
+                email: user.rows[0].user_email,
+                userId: user.rows[0].user_id
+            });
+        }
+
+        // If 2FA is not enabled, generate token and return
         const token = jwtGenerator(user.rows[0].user_id);
         res.json({ token, role: user.rows[0].user_role });
 
     } catch (err) {
         console.error(err.message);
         res.status(500).json({ error: "Server error" });
+    }
+});
+
+// Add this route to complete login after 2FA verification
+
+/**
+ * Complete login after 2FA verification
+ */
+router.post('/login/complete', async (req, res) => {
+    try {
+        const { userId } = req.body;
+        
+        if (!userId) {
+            return res.status(400).json({ error: 'User ID is required' });
+        }
+        
+        // Get user to return role
+        const user = await pool.query(
+            "SELECT user_role FROM users WHERE user_id = $1",
+            [userId]
+        );
+        
+        if (user.rows.length === 0) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        
+        // Generate JWT Token
+        const token = jwtGenerator(userId);
+        res.json({ token, role: user.rows[0].user_role });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ error: 'Server error' });
     }
 });
 
